@@ -8,14 +8,14 @@ PercyTech implements a **unified database with brand isolation** approach using 
 
 ### Unified vs Separate Database Strategy
 
-| Aspect | Unified Database (✅ Chosen) | Separate Databases |
-|--------|------------------------------|-------------------|
-| **Brand Isolation** | Row Level Security + brand_id | Physical separation |
-| **Cross-Brand Analytics** | Native SQL joins | Complex ETL processes |
-| **Customer Journey** | Single customer record | Complex data sync |
-| **Development Complexity** | Single schema to maintain | Multiple schema versions |
-| **Cost** | Single instance scaling | Multiple instance costs |
-| **Backup/Recovery** | Single process | Multiple processes |
+| Aspect                     | Unified Database (✅ Chosen)  | Separate Databases       |
+| -------------------------- | ----------------------------- | ------------------------ |
+| **Brand Isolation**        | Row Level Security + brand_id | Physical separation      |
+| **Cross-Brand Analytics**  | Native SQL joins              | Complex ETL processes    |
+| **Customer Journey**       | Single customer record        | Complex data sync        |
+| **Development Complexity** | Single schema to maintain     | Multiple schema versions |
+| **Cost**                   | Single instance scaling       | Multiple instance costs  |
+| **Backup/Recovery**        | Single process                | Multiple processes       |
 
 ### Why Unified Database?
 
@@ -56,13 +56,13 @@ CREATE TYPE brand_id AS ENUM ('gnymble', 'percymd', 'percytext');
 CREATE TABLE customers (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   brand_id brand_id NOT NULL,
-  
+
   -- Identity
   email VARCHAR(255) NOT NULL,
   phone VARCHAR(20),
   first_name VARCHAR(100),
   last_name VARCHAR(100),
-  
+
   -- Journey tracking
   stage customer_stage NOT NULL DEFAULT 'lead',
   source customer_source NOT NULL DEFAULT 'website',
@@ -70,15 +70,15 @@ CREATE TABLE customers (
   trial_started_at TIMESTAMPTZ,
   subscribed_at TIMESTAMPTZ,
   churned_at TIMESTAMPTZ,
-  
+
   -- Metadata
   metadata JSONB,
   tags TEXT[],
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
+
   -- Brand isolation constraints
   CONSTRAINT customers_brand_email_unique UNIQUE (brand_id, email),
   CONSTRAINT customers_brand_phone_unique UNIQUE (brand_id, phone)
@@ -92,57 +92,57 @@ CREATE TABLE conversations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   brand_id brand_id NOT NULL,
   customer_id UUID NOT NULL REFERENCES customers(id),
-  
+
   -- Phone numbers
   customer_phone VARCHAR(20) NOT NULL,
   brand_phone VARCHAR(20) NOT NULL,
-  
+
   -- Conversation state
   status conversation_status NOT NULL DEFAULT 'active',
   campaign_id UUID,
   campaign_name VARCHAR(255),
-  
+
   -- Message tracking
   message_count INTEGER NOT NULL DEFAULT 0,
   last_message_at TIMESTAMPTZ,
   last_inbound_at TIMESTAMPTZ,
   last_outbound_at TIMESTAMPTZ,
-  
+
   -- Opt-out compliance
   opted_out_at TIMESTAMPTZ,
   opt_out_reason TEXT,
-  
+
   -- Metadata
   metadata JSONB,
   tags TEXT[],
-  
+
   -- Audit
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
+
   -- Brand isolation
-  CONSTRAINT conversations_brand_phones_unique 
+  CONSTRAINT conversations_brand_phones_unique
     UNIQUE (brand_id, customer_phone, brand_phone)
 );
 
 CREATE TABLE messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   conversation_id UUID NOT NULL REFERENCES conversations(id),
-  
+
   -- Message content
   direction message_direction NOT NULL,
   content TEXT NOT NULL,
   media_urls TEXT[],
-  
+
   -- Status tracking
   status message_status,
   external_id VARCHAR(255), -- Provider message ID
-  
+
   -- Timing
   sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   delivered_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
+
   -- Metadata
   metadata JSONB
 );
@@ -163,7 +163,7 @@ CREATE POLICY customers_brand_isolation ON customers
   FOR ALL
   USING (brand_id = current_setting('app.current_brand')::brand_id);
 
--- Brand isolation for conversations  
+-- Brand isolation for conversations
 CREATE POLICY conversations_brand_isolation ON conversations
   FOR ALL
   USING (brand_id = current_setting('app.current_brand')::brand_id);
@@ -173,7 +173,7 @@ CREATE POLICY messages_conversation_access ON messages
   FOR ALL
   USING (
     conversation_id IN (
-      SELECT id FROM conversations 
+      SELECT id FROM conversations
       WHERE brand_id = current_setting('app.current_brand')::brand_id
     )
   );
@@ -184,12 +184,12 @@ CREATE POLICY messages_conversation_access ON messages
 ```typescript
 // Application sets brand context per request
 export async function setBrandContext(
-  supabase: SupabaseClient, 
+  supabase: SupabaseClient,
   brandId: BrandId
 ) {
-  await supabase.rpc('set_config', {
-    parameter: 'app.current_brand',
-    value: brandId
+  await supabase.rpc("set_config", {
+    parameter: "app.current_brand",
+    value: brandId,
   });
 }
 ```
@@ -241,7 +241,7 @@ CREATE TYPE customer_stage AS ENUM (
 
 -- Source attribution
 CREATE TYPE customer_source AS ENUM (
-  'website', 'sms_campaign', 'email_campaign', 
+  'website', 'sms_campaign', 'email_campaign',
   'referral', 'organic', 'paid_ads', 'social', 'other'
 );
 ```
@@ -251,13 +251,13 @@ CREATE TYPE customer_source AS ENUM (
 ```sql
 -- Customer analytics by brand
 CREATE VIEW customer_analytics AS
-SELECT 
+SELECT
   brand_id,
   stage,
   source,
   COUNT(*) as count,
   COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') as count_30d,
-  AVG(EXTRACT(EPOCH FROM (subscribed_at - created_at))/86400) 
+  AVG(EXTRACT(EPOCH FROM (subscribed_at - created_at))/86400)
     FILTER (WHERE subscribed_at IS NOT NULL) as avg_days_to_subscription
 FROM customers
 WHERE is_active = TRUE
@@ -293,7 +293,7 @@ export interface Database {
   public: {
     Tables: {
       customers: {
-        Row: Customer;        // Full customer record
+        Row: Customer; // Full customer record
         Insert: CreateCustomer; // Fields for INSERT
         Update: UpdateCustomer; // Fields for UPDATE
       };
@@ -318,12 +318,12 @@ export interface Database {
 // Type-safe database operations
 export class BrandAwareSupabase {
   constructor(private brandContext: BrandContext) {}
-  
+
   get customers() {
     return this.client
-      .from('customers')
-      .select('*')
-      .eq('brand_id', this.brandContext.brand_id);
+      .from("customers")
+      .select("*")
+      .eq("brand_id", this.brandContext.brand_id);
   }
 }
 ```
@@ -349,11 +349,11 @@ export class BrandAwareSupabase {
 BEGIN;
   -- Add column with default
   ALTER TABLE customers ADD COLUMN new_field TEXT DEFAULT 'default_value';
-  
+
   -- Update existing data per brand
-  UPDATE customers SET new_field = 'brand_specific_value' 
+  UPDATE customers SET new_field = 'brand_specific_value'
   WHERE brand_id = 'gnymble';
-  
+
   -- Add constraints after data migration
   ALTER TABLE customers ALTER COLUMN new_field SET NOT NULL;
 COMMIT;

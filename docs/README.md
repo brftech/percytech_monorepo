@@ -5,18 +5,21 @@ Welcome to the PercyTech monorepo documentation. This serves as your navigation 
 ## 📋 Quick Navigation
 
 ### 🏗️ Architecture
+
 - **[Architecture Overview](./architecture/overview.md)** - High-level system design and component relationships
 - **[Brand Strategy](./architecture/brand-strategy.md)** - Multi-brand approach and isolation strategy
 - **[Database Design](./architecture/database-design.md)** - Unified vs separate database decisions
 - **[API Routing](./architecture/api-routing.md)** - Brand context detection and routing patterns
 
 ### 📝 Architecture Decision Records (ADRs)
+
 - **[ADR-001: Monorepo Structure](./decisions/001-monorepo-structure.md)** - Turbo monorepo with brand domains
 - **[ADR-002: Snake Case Convention](./decisions/002-snake-case-convention.md)** - Supabase compatibility standardization
 - **[ADR-003: Brand Isolation](./decisions/003-brand-isolation.md)** - Database and application isolation strategy
 - **[ADR Template](./decisions/template.md)** - Template for future architectural decisions
 
 ### 🛠️ Development
+
 - **[Setup Guide](./development/setup.md)** - Complete development environment setup
 - **[Code Conventions](./development/conventions.md)** - Coding standards and naming conventions
 - **[Troubleshooting](./development/troubleshooting.md)** - Common issues and solutions
@@ -31,8 +34,9 @@ Welcome to the PercyTech monorepo documentation. This serves as your navigation 
 ## 🏢 About PercyTech
 
 PercyTech operates three distinct brands:
+
 - **Gnymble** (`gnymble.com` → `app.gnymble.com`)
-- **PercyMD** (`percymd.com` → `app.percymd.com`) 
+- **PercyMD** (`percymd.com` → `app.percymd.com`)
 - **PercyText** (`percytext.com` → `app.percytext.com`)
 
 Each brand has its own marketing site and platform application, unified by shared SMS automation and customer journey tracking.
@@ -49,6 +53,7 @@ Our documentation follows these principles:
 ## 🤝 Contributing to Documentation
 
 When making architectural decisions:
+
 1. Create a new ADR using the [template](./decisions/template.md)
 2. Update relevant architecture docs
 3. Add troubleshooting entries for new patterns

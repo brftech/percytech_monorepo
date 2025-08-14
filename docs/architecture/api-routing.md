@@ -15,17 +15,17 @@ Brand context is determined by **domain detection**, not authentication headers 
 export function getBrandFromRequest(request: Request): BrandId {
   const url = new URL(request.url);
   const host = url.hostname;
-  
-  if (host.includes('gnymble')) return 'gnymble';
-  if (host.includes('percymd')) return 'percymd';
-  if (host.includes('percytext')) return 'percytext';
-  
+
+  if (host.includes("gnymble")) return "gnymble";
+  if (host.includes("percymd")) return "percymd";
+  if (host.includes("percytext")) return "percytext";
+
   // Fallback for development
-  if (host.includes('localhost')) {
-    const brand = url.searchParams.get('brand');
+  if (host.includes("localhost")) {
+    const brand = url.searchParams.get("brand");
     if (brand) return validateBrandId(brand);
   }
-  
+
   throw new Error(`Cannot determine brand from host: ${host}`);
 }
 ```
@@ -65,8 +65,11 @@ export function getBrandFromRequest(request: Request): BrandId {
 
 ```typescript
 // /api/[brand]/customers/route.ts
-import { NextRequest } from 'next/server';
-import { createDatabaseClient, validateBrandId } from '@percytech/shared-database';
+import { NextRequest } from "next/server";
+import {
+  createDatabaseClient,
+  validateBrandId,
+} from "@percytech/shared-database";
 
 export async function GET(
   request: NextRequest,
@@ -76,35 +79,34 @@ export async function GET(
     // Validate and extract brand context
     const brandId = validateBrandId(params.brand);
     const brandConfig = getBrandConfig(brandId);
-    
+
     // Create brand-aware database client
     const db = createDatabaseClient({
       brand_id: brandId,
       config: brandConfig,
       user_id: await getUserId(request), // from auth
-      is_admin: await checkAdminRole(request)
+      is_admin: await checkAdminRole(request),
     });
-    
+
     // Extract query parameters
     const { searchParams } = new URL(request.url);
-    const stage = searchParams.get('stage') as CustomerStage | null;
-    const limit = parseInt(searchParams.get('limit') || '50');
-    
+    const stage = searchParams.get("stage") as CustomerStage | null;
+    const limit = parseInt(searchParams.get("limit") || "50");
+
     // Execute brand-scoped query
-    const customers = stage 
+    const customers = stage
       ? await db.customers.getByStage(stage, limit)
-      : await db.customers.search('', limit);
-    
+      : await db.customers.search("", limit);
+
     return Response.json({
       data: customers,
       brand: brandId,
-      total: customers.length
+      total: customers.length,
     });
-    
   } catch (error) {
     return Response.json(
       { error: error.message },
-      { status: error.message.includes('brand') ? 400 : 500 }
+      { status: error.message.includes("brand") ? 400 : 500 }
     );
   }
 }
@@ -115,18 +117,18 @@ export async function POST(
 ) {
   const brandId = validateBrandId(params.brand);
   const body = await request.json();
-  
+
   // Validate input with Zod
   const customerData = CreateCustomerSchema.parse(body);
-  
+
   const db = createDatabaseClient({
     brand_id: brandId,
     config: getBrandConfig(brandId),
-    user_id: await getUserId(request)
+    user_id: await getUserId(request),
   });
-  
+
   const customer = await db.customers.create(customerData);
-  
+
   return Response.json({ data: customer }, { status: 201 });
 }
 ```
@@ -135,41 +137,43 @@ export async function POST(
 
 ```typescript
 // middleware.ts
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  
+
   // Only process API routes with [brand] parameter
-  if (pathname.startsWith('/api/') && pathname.includes('[brand]')) {
+  if (pathname.startsWith("/api/") && pathname.includes("[brand]")) {
     try {
       const brandId = getBrandFromRequest(request);
-      
+
       // Add brand context to headers for downstream handlers
       const requestHeaders = new Headers(request.headers);
-      requestHeaders.set('x-brand-id', brandId);
-      requestHeaders.set('x-brand-config', JSON.stringify(getBrandConfig(brandId)));
-      
+      requestHeaders.set("x-brand-id", brandId);
+      requestHeaders.set(
+        "x-brand-config",
+        JSON.stringify(getBrandConfig(brandId))
+      );
+
       return NextResponse.next({
         request: {
           headers: requestHeaders,
         },
       });
-      
     } catch (error) {
       return NextResponse.json(
-        { error: 'Invalid brand context' },
+        { error: "Invalid brand context" },
         { status: 400 }
       );
     }
   }
-  
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: "/api/:path*",
 };
 ```
 
@@ -181,51 +185,51 @@ export const config = {
 // /api/webhooks/bandwidth/route.ts
 export async function POST(request: NextRequest) {
   const payload = await request.json();
-  
+
   // Extract brand context from phone number or message metadata
   const brandPhone = payload.to;
   const brandId = getBrandFromPhone(brandPhone);
-  
+
   const db = createDatabaseClient({
     brand_id: brandId,
-    config: getBrandConfig(brandId)
+    config: getBrandConfig(brandId),
   });
-  
+
   // Find conversation by phone numbers
   const conversation = await db.conversations.getByPhones(
-    payload.from,  // customer phone
-    payload.to     // brand phone
+    payload.from, // customer phone
+    payload.to // brand phone
   );
-  
+
   if (conversation) {
     // Add inbound message to existing conversation
     await db.conversations.addMessage({
       conversation_id: conversation.id,
-      direction: 'inbound',
+      direction: "inbound",
       content: payload.text,
-      external_id: payload.messageId
+      external_id: payload.messageId,
     });
   } else {
     // Create new conversation and customer if needed
     const customer = await db.customers.findOrCreate(
       payload.from, // use phone as identifier
-      { source: 'sms_campaign' }
+      { source: "sms_campaign" }
     );
-    
+
     const newConversation = await db.conversations.create({
       customer_id: customer.id,
       customer_phone: payload.from,
-      brand_phone: payload.to
+      brand_phone: payload.to,
     });
-    
+
     await db.conversations.addMessage({
       conversation_id: newConversation.id,
-      direction: 'inbound',
+      direction: "inbound",
       content: payload.text,
-      external_id: payload.messageId
+      external_id: payload.messageId,
     });
   }
-  
+
   return Response.json({ success: true });
 }
 ```
@@ -240,10 +244,10 @@ export async function POST(
 ) {
   const brandId = validateBrandId(params.brand);
   const { to, message, campaign_id } = await request.json();
-  
+
   const smsService = createSMSClient(brandId);
   const db = createDatabaseClient({ brand_id: brandId });
-  
+
   // Find or create conversation
   const conversation = await db.conversations.findOrCreate(
     customerId,
@@ -251,23 +255,23 @@ export async function POST(
     getBrandPhone(brandId),
     { campaign_id }
   );
-  
+
   // Send SMS via Bandwidth
   const result = await smsService.sendMessage({
     to,
     from: getBrandPhone(brandId),
-    text: message
+    text: message,
   });
-  
+
   // Record outbound message
   await db.conversations.addMessage({
     conversation_id: conversation.id,
-    direction: 'outbound',
+    direction: "outbound",
     content: message,
     external_id: result.messageId,
-    status: 'sent'
+    status: "sent",
   });
-  
+
   return Response.json({ success: true, messageId: result.messageId });
 }
 ```
@@ -282,21 +286,21 @@ export async function GET(request: NextRequest) {
   // Verify admin permissions
   const user = await getAuthenticatedUser(request);
   if (!user?.is_admin) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 });
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
-  
+
   // Aggregate data across all brands
   const analytics = await Promise.all([
-    getDatabaseClient('gnymble').customers.getAnalytics(),
-    getDatabaseClient('percymd').customers.getAnalytics(),
-    getDatabaseClient('percytext').customers.getAnalytics()
+    getDatabaseClient("gnymble").customers.getAnalytics(),
+    getDatabaseClient("percymd").customers.getAnalytics(),
+    getDatabaseClient("percytext").customers.getAnalytics(),
   ]);
-  
+
   return Response.json({
     gnymble: analytics[0],
-    percymd: analytics[1], 
+    percymd: analytics[1],
     percytext: analytics[2],
-    combined: combineAnalytics(analytics)
+    combined: combineAnalytics(analytics),
   });
 }
 ```
@@ -320,22 +324,19 @@ export class BrandAPIError extends Error {
 export function handleAPIError(error: unknown, brandId?: BrandId) {
   if (error instanceof BrandAPIError) {
     return Response.json(
-      { 
+      {
         error: error.message,
         brand: error.brandId || brandId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       { status: error.statusCode }
     );
   }
-  
+
   // Log unexpected errors with brand context
-  console.error(`[${brandId || 'unknown'}] API Error:`, error);
-  
-  return Response.json(
-    { error: 'Internal server error' },
-    { status: 500 }
-  );
+  console.error(`[${brandId || "unknown"}] API Error:`, error);
+
+  return Response.json({ error: "Internal server error" }, { status: 500 });
 }
 ```
 
@@ -359,25 +360,25 @@ https://api.percytech.com/gnymble/customers
 // Test helper for brand-aware API testing
 export function createBrandTestClient(brandId: BrandId) {
   return {
-    get: (path: string) => 
+    get: (path: string) =>
       fetch(`/api/${brandId}${path}`, {
-        headers: { 'x-test-brand': brandId }
+        headers: { "x-test-brand": brandId },
       }),
     post: (path: string, data: any) =>
       fetch(`/api/${brandId}${path}`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-test-brand': brandId 
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-test-brand": brandId,
         },
-        body: JSON.stringify(data)
-      })
+        body: JSON.stringify(data),
+      }),
   };
 }
 
 // Usage in tests
-const gnymbleAPI = createBrandTestClient('gnymble');
-const customers = await gnymbleAPI.get('/customers');
+const gnymbleAPI = createBrandTestClient("gnymble");
+const customers = await gnymbleAPI.get("/customers");
 ```
 
 ## Security Considerations
@@ -392,7 +393,7 @@ export function validateBrandAccess(
 ): void {
   // Admin users can access any brand
   if (userContext.is_admin) return;
-  
+
   // Regular users can only access their brand
   if (userContext.brand_id !== requestedBrand) {
     throw new BrandAPIError(
@@ -415,7 +416,7 @@ export async function checkRateLimit(
 ): Promise<boolean> {
   const key = `rate_limit:${brandId}:${endpoint}:${identifier}`;
   const limit = getBrandConfig(brandId).rate_limits[endpoint];
-  
+
   // Implement sliding window rate limiting
   return await rateLimiter.check(key, limit);
 }

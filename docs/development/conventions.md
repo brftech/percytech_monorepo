@@ -109,12 +109,12 @@ export interface BrandContext {
 }
 
 // ✅ Correct: Union types for specific values
-export type CustomerStage = 
-  | 'lead' 
-  | 'marketing' 
-  | 'trial' 
-  | 'active' 
-  | 'churned' 
+export type CustomerStage =
+  | 'lead'
+  | 'marketing'
+  | 'trial'
+  | 'active'
+  | 'churned'
   | 'dormant';
 
 // ✅ Correct: Generic types with constraints
@@ -146,22 +146,25 @@ export interface Customer {
 
 // ✅ Correct: Barrel exports for packages
 // packages/shared-database/src/index.ts
-export type { Customer, CreateCustomer } from './types/customer';
-export { createDatabaseClient } from './client/supabase';
-export { CustomerOperations } from './utils/customer-ops';
+export type { Customer, CreateCustomer } from "./types/customer";
+export { createDatabaseClient } from "./client/supabase";
+export { CustomerOperations } from "./utils/customer-ops";
 
 // ✅ Correct: Import organization
 // 1. External libraries
-import React from 'react';
-import { z } from 'zod';
+import React from "react";
+import { z } from "zod";
 
 // 2. Internal packages
-import { createDatabaseClient, type Customer } from '@percytech/shared-database';
-import { Button, Card } from '@percytech/shared-ui';
+import {
+  createDatabaseClient,
+  type Customer,
+} from "@percytech/shared-database";
+import { Button, Card } from "@percytech/shared-ui";
 
 // 3. Relative imports
-import { formatPhoneNumber } from '../utils/format-phone';
-import type { ComponentProps } from './types';
+import { formatPhoneNumber } from "../utils/format-phone";
+import type { ComponentProps } from "./types";
 ```
 
 ## React Component Standards
@@ -179,10 +182,10 @@ interface CustomerCardProps {
   className?: string;
 }
 
-export function CustomerCard({ 
-  customer, 
-  onEdit, 
-  className = "" 
+export function CustomerCard({
+  customer,
+  onEdit,
+  className = ""
 }: CustomerCardProps) {
   const displayName = customer.first_name && customer.last_name
     ? `${customer.first_name} ${customer.last_name}`
@@ -197,7 +200,7 @@ export function CustomerCard({
       <h3 className="text-lg font-semibold">{displayName}</h3>
       <p className="text-gray-600">{customer.email}</p>
       {onEdit && (
-        <button 
+        <button
           onClick={handleEdit}
           className="mt-2 px-3 py-1 bg-blue-500 text-white rounded"
         >
@@ -213,8 +216,8 @@ export function CustomerCard({
 
 ```typescript
 // ✅ Correct: Custom hook structure
-import { useState, useEffect } from 'react';
-import { type Customer } from '@percytech/shared-database';
+import { useState, useEffect } from "react";
+import { type Customer } from "@percytech/shared-database";
 
 interface UseCustomerDataOptions {
   brandId: BrandId;
@@ -228,9 +231,9 @@ interface UseCustomerDataReturn {
   refetch: () => Promise<void>;
 }
 
-export function useCustomerData({ 
-  brandId, 
-  stage 
+export function useCustomerData({
+  brandId,
+  stage,
 }: UseCustomerDataOptions): UseCustomerDataReturn {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -240,17 +243,19 @@ export function useCustomerData({
     try {
       setIsLoading(true);
       setError(null);
-      
-      const response = await fetch(`/api/${brandId}/customers${stage ? `?stage=${stage}` : ''}`);
-      
+
+      const response = await fetch(
+        `/api/${brandId}/customers${stage ? `?stage=${stage}` : ""}`
+      );
+
       if (!response.ok) {
-        throw new Error('Failed to fetch customers');
+        throw new Error("Failed to fetch customers");
       }
-      
+
       const data = await response.json();
       setCustomers(data.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setIsLoading(false);
     }
@@ -264,7 +269,7 @@ export function useCustomerData({
     customers,
     isLoading,
     error,
-    refetch: fetchCustomers
+    refetch: fetchCustomers,
   };
 }
 ```
@@ -275,13 +280,13 @@ export function useCustomerData({
 
 ```typescript
 // ✅ Correct: API route structure
-import { NextRequest } from 'next/server';
-import { 
-  createDatabaseClient, 
+import { NextRequest } from "next/server";
+import {
+  createDatabaseClient,
   validateBrandId,
   CreateCustomerSchema,
-  type Customer 
-} from '@percytech/shared-database';
+  type Customer,
+} from "@percytech/shared-database";
 
 export async function GET(
   request: NextRequest,
@@ -290,31 +295,30 @@ export async function GET(
   try {
     // 1. Validate brand context
     const brandId = validateBrandId(params.brand);
-    
+
     // 2. Extract and validate query parameters
     const { searchParams } = new URL(request.url);
-    const stage = searchParams.get('stage') as CustomerStage | null;
-    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
-    
+    const stage = searchParams.get("stage") as CustomerStage | null;
+    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
+
     // 3. Create brand-aware database client
     const db = createDatabaseClient({
       brand_id: brandId,
       config: getBrandConfig(brandId),
-      user_id: await getUserId(request)
+      user_id: await getUserId(request),
     });
-    
+
     // 4. Execute query
-    const customers = stage 
+    const customers = stage
       ? await db.customers.getByStage(stage, limit)
-      : await db.customers.search('', limit);
-    
+      : await db.customers.search("", limit);
+
     // 5. Return consistent response format
     return Response.json({
       data: customers,
       brand: brandId,
-      total: customers.length
+      total: customers.length,
     });
-    
   } catch (error) {
     return handleAPIError(error, params.brand);
   }
@@ -327,23 +331,19 @@ export async function POST(
   try {
     const brandId = validateBrandId(params.brand);
     const body = await request.json();
-    
+
     // Validate input with Zod
     const customerData = CreateCustomerSchema.parse(body);
-    
+
     const db = createDatabaseClient({
       brand_id: brandId,
       config: getBrandConfig(brandId),
-      user_id: await getUserId(request)
+      user_id: await getUserId(request),
     });
-    
+
     const customer = await db.customers.create(customerData);
-    
-    return Response.json(
-      { data: customer, brand: brandId },
-      { status: 201 }
-    );
-    
+
+    return Response.json({ data: customer, brand: brandId }, { status: 201 });
   } catch (error) {
     return handleAPIError(error, params.brand);
   }
@@ -361,39 +361,36 @@ export class APIError extends Error {
     public code?: string
   ) {
     super(message);
-    this.name = 'APIError';
+    this.name = "APIError";
   }
 }
 
 export function handleAPIError(error: unknown, brandId?: string) {
-  console.error(`[${brandId || 'unknown'}] API Error:`, error);
-  
+  console.error(`[${brandId || "unknown"}] API Error:`, error);
+
   if (error instanceof APIError) {
     return Response.json(
-      { 
+      {
         error: error.message,
         code: error.code,
-        brand: brandId
+        brand: brandId,
       },
       { status: error.statusCode }
     );
   }
-  
+
   if (error instanceof z.ZodError) {
     return Response.json(
-      { 
-        error: 'Validation failed',
+      {
+        error: "Validation failed",
         details: error.errors,
-        brand: brandId
+        brand: brandId,
       },
       { status: 400 }
     );
   }
-  
-  return Response.json(
-    { error: 'Internal server error' },
-    { status: 500 }
-  );
+
+  return Response.json({ error: "Internal server error" }, { status: 500 });
 }
 ```
 
@@ -410,8 +407,8 @@ export class CustomerOperations {
     const customerData = {
       ...data,
       brand_id: this.db.context.brand_id,
-      stage: data.stage || 'lead',
-      source: data.source || 'website',
+      stage: data.stage || "lead",
+      source: data.source || "website",
       is_active: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -419,7 +416,7 @@ export class CustomerOperations {
     };
 
     const { data: customer, error } = await this.db.raw
-      .from('customers')
+      .from("customers")
       .insert(customerData)
       .select()
       .single();
@@ -433,9 +430,9 @@ export class CustomerOperations {
 
   async getByStage(stage: CustomerStage, limit = 50): Promise<Customer[]> {
     const { data, error } = await this.db.customers
-      .eq('stage', stage)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
+      .eq("stage", stage)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error) {
@@ -453,13 +450,18 @@ export class CustomerOperations {
 
 ```typescript
 // ✅ Correct: Zod validation schemas
-import { z } from 'zod';
+import { z } from "zod";
 
 // Base schemas
-export const BrandIdSchema = z.enum(['gnymble', 'percymd', 'percytext']);
+export const BrandIdSchema = z.enum(["gnymble", "percymd", "percytext"]);
 
 export const CustomerStageSchema = z.enum([
-  'lead', 'marketing', 'trial', 'active', 'churned', 'dormant'
+  "lead",
+  "marketing",
+  "trial",
+  "active",
+  "churned",
+  "dormant",
 ]);
 
 // Entity schemas
@@ -508,21 +510,24 @@ export const CustomerQuerySchema = z.object({
 
 ```typescript
 // ✅ Correct: Test file structure
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { createDatabaseClient, type BrandContext } from '@percytech/shared-database';
+import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
+import {
+  createDatabaseClient,
+  type BrandContext,
+} from "@percytech/shared-database";
 
-describe('CustomerOperations', () => {
+describe("CustomerOperations", () => {
   let db: ReturnType<typeof createDatabaseClient>;
   let brandContext: BrandContext;
 
   beforeEach(() => {
     brandContext = {
-      brand_id: 'gnymble',
-      config: getBrandConfig('gnymble'),
-      user_id: 'test-user-123',
-      is_admin: false
+      brand_id: "gnymble",
+      config: getBrandConfig("gnymble"),
+      user_id: "test-user-123",
+      is_admin: false,
     };
-    
+
     db = createDatabaseClient(brandContext);
   });
 
@@ -531,12 +536,12 @@ describe('CustomerOperations', () => {
     await cleanupTestData(brandContext.brand_id);
   });
 
-  describe('create', () => {
-    it('should create a customer with brand context', async () => {
+  describe("create", () => {
+    it("should create a customer with brand context", async () => {
       const customerData = {
-        email: 'test@example.com',
-        first_name: 'Test',
-        last_name: 'User'
+        email: "test@example.com",
+        first_name: "Test",
+        last_name: "User",
       };
 
       const customer = await db.customers.create(customerData);
@@ -545,23 +550,23 @@ describe('CustomerOperations', () => {
         email: customerData.email,
         first_name: customerData.first_name,
         last_name: customerData.last_name,
-        brand_id: 'gnymble',
-        stage: 'lead',
-        is_active: true
+        brand_id: "gnymble",
+        stage: "lead",
+        is_active: true,
       });
       expect(customer.id).toBeDefined();
       expect(customer.created_at).toBeDefined();
     });
 
-    it('should throw error for invalid email', async () => {
+    it("should throw error for invalid email", async () => {
       const customerData = {
-        email: 'invalid-email',
-        first_name: 'Test'
+        email: "invalid-email",
+        first_name: "Test",
       };
 
-      await expect(db.customers.create(customerData))
-        .rejects
-        .toThrow('Invalid email format');
+      await expect(db.customers.create(customerData)).rejects.toThrow(
+        "Invalid email format"
+      );
     });
   });
 });
@@ -571,15 +576,15 @@ describe('CustomerOperations', () => {
 
 ### Code Comments
 
-```typescript
+````typescript
 // ✅ Correct: Meaningful comments
 /**
  * Creates a brand-aware database client that automatically filters
  * all queries by the provided brand context.
- * 
+ *
  * @param brandContext - Brand identification and user context
  * @returns Database client with brand filtering applied
- * 
+ *
  * @example
  * ```typescript
  * const db = createDatabaseClient({
@@ -587,7 +592,7 @@ describe('CustomerOperations', () => {
  *   config: getBrandConfig('gnymble'),
  *   user_id: 'user-123'
  * });
- * 
+ *
  * const customers = await db.customers.getByStage('active');
  * ```
  */
@@ -600,19 +605,19 @@ export function createDatabaseClient(brandContext: BrandContext) {
 // where subscription date might be before creation date (data import scenarios)
 export function getCustomerJourneyDuration(customer: Customer): number | null {
   if (!customer.subscribed_at || !customer.created_at) return null;
-  
+
   const start = new Date(customer.created_at);
   const end = new Date(customer.subscribed_at);
-  
+
   // Ensure positive duration for data integrity
   const durationMs = Math.max(0, end.getTime() - start.getTime());
   return Math.floor(durationMs / (1000 * 60 * 60 * 24));
 }
-```
+````
 
 ### JSDoc Standards
 
-```typescript
+````typescript
 /**
  * @fileoverview Customer operations for brand-aware database interactions
  * @author PercyTech Engineering Team
@@ -631,11 +636,11 @@ export class CustomerOperations {
 
   /**
    * Creates a new customer with brand context automatically applied.
-   * 
+   *
    * @param data - Customer creation data
    * @returns Promise resolving to the created customer
    * @throws {APIError} When customer creation fails
-   * 
+   *
    * @example
    * ```typescript
    * const customer = await customerOps.create({
@@ -649,7 +654,7 @@ export class CustomerOperations {
     // Implementation...
   }
 }
-```
+````
 
 ## Linting Configuration
 
@@ -715,6 +720,7 @@ export class CustomerOperations {
 ---
 
 **Key Principles**:
+
 - **Consistency**: Follow established patterns across the codebase
 - **Type Safety**: Leverage TypeScript's type system fully
 - **Brand Awareness**: Every operation must consider brand context
