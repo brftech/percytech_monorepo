@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "es6"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@percytech/shared-ui": ["./packages/shared-ui/src"],
+      "@percytech/shared-ui/*": ["./packages/shared-ui/src/*"],
+      "@percytech/shared-database": ["./packages/shared-database/src"],
+      "@percytech/shared-database/*": ["./packages/shared-database/src/*"],
+      "@percytech/shared-sms": ["./packages/shared-sms/src"],
+      "@percytech/shared-sms/*": ["./packages/shared-sms/src/*"],
+      "@percytech/aws-client": ["./packages/aws-client/src"],
+      "@percytech/aws-client/*": ["./packages/aws-client/src/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
