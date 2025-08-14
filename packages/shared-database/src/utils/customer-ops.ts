@@ -1,12 +1,12 @@
-import { BrandAwareSupabase } from '../client/supabase';
-import { 
-  Customer, 
-  CreateCustomer, 
-  UpdateCustomer, 
+import { BrandAwareSupabase } from "../client/supabase";
+import {
+  Customer,
+  CreateCustomer,
+  UpdateCustomer,
   CustomerStage,
-  CustomerSource 
-} from '../types/customer';
-import { BrandId } from '../types/brand';
+  CustomerSource,
+} from "../types/customer";
+import { BrandId } from "../types/brand";
 
 export class CustomerOperations {
   constructor(private db: BrandAwareSupabase) {}
@@ -16,8 +16,8 @@ export class CustomerOperations {
     const customerData = {
       ...data,
       brand_id: this.db.context.brand_id,
-      stage: data.stage || ('lead' as CustomerStage),
-      source: data.source || ('website' as CustomerSource),
+      stage: data.stage || ("lead" as CustomerStage),
+      source: data.source || ("website" as CustomerSource),
       is_active: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -25,7 +25,7 @@ export class CustomerOperations {
     };
 
     const { data: customer, error } = await this.db.raw
-      .from('customers')
+      .from("customers")
       .insert(customerData)
       .select()
       .single();
@@ -39,12 +39,10 @@ export class CustomerOperations {
 
   // Get customer by ID
   async getById(id: string): Promise<Customer | null> {
-    const { data, error } = await this.db.customers
-      .eq('id', id)
-      .single();
+    const { data, error } = await this.db.customers.eq("id", id).single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
+      if (error.code === "PGRST116") return null; // Not found
       throw new Error(`Failed to get customer: ${error.message}`);
     }
 
@@ -53,12 +51,10 @@ export class CustomerOperations {
 
   // Get customer by email
   async getByEmail(email: string): Promise<Customer | null> {
-    const { data, error } = await this.db.customers
-      .eq('email', email)
-      .single();
+    const { data, error } = await this.db.customers.eq("email", email).single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
+      if (error.code === "PGRST116") return null; // Not found
       throw new Error(`Failed to get customer by email: ${error.message}`);
     }
 
@@ -67,12 +63,10 @@ export class CustomerOperations {
 
   // Get customer by phone
   async getByPhone(phone: string): Promise<Customer | null> {
-    const { data, error } = await this.db.customers
-      .eq('phone', phone)
-      .single();
+    const { data, error } = await this.db.customers.eq("phone", phone).single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
+      if (error.code === "PGRST116") return null; // Not found
       throw new Error(`Failed to get customer by phone: ${error.message}`);
     }
 
@@ -87,10 +81,10 @@ export class CustomerOperations {
     };
 
     const { data: customer, error } = await this.db.raw
-      .from('customers')
+      .from("customers")
       .update(updateData)
-      .eq('id', id)
-      .eq('brand_id', this.db.context.brand_id)
+      .eq("id", id)
+      .eq("brand_id", this.db.context.brand_id)
       .select()
       .single();
 
@@ -108,16 +102,16 @@ export class CustomerOperations {
 
     // Set stage-specific timestamps
     switch (newStage) {
-      case 'marketing':
+      case "marketing":
         updateData.marketing_qualified_at = now;
         break;
-      case 'trial':
+      case "trial":
         updateData.trial_started_at = now;
         break;
-      case 'active':
+      case "active":
         updateData.subscribed_at = now;
         break;
-      case 'churned':
+      case "churned":
         updateData.churned_at = now;
         updateData.is_active = false;
         break;
@@ -129,9 +123,9 @@ export class CustomerOperations {
   // Get customers by stage
   async getByStage(stage: CustomerStage, limit = 50): Promise<Customer[]> {
     const { data, error } = await this.db.customers
-      .eq('stage', stage)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
+      .eq("stage", stage)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error) {
@@ -144,9 +138,11 @@ export class CustomerOperations {
   // Search customers
   async search(query: string, limit = 20): Promise<Customer[]> {
     const { data, error } = await this.db.customers
-      .or(`email.ilike.%${query}%, first_name.ilike.%${query}%, last_name.ilike.%${query}%, phone.ilike.%${query}%`)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
+      .or(
+        `email.ilike.%${query}%, first_name.ilike.%${query}%, last_name.ilike.%${query}%, phone.ilike.%${query}%`
+      )
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error) {
@@ -157,7 +153,10 @@ export class CustomerOperations {
   }
 
   // Find or create customer (upsert logic)
-  async findOrCreate(email: string, data: Partial<CreateCustomer> = {}): Promise<Customer> {
+  async findOrCreate(
+    email: string,
+    data: Partial<CreateCustomer> = {}
+  ): Promise<Customer> {
     // Try to find existing customer
     const existing = await this.getByEmail(email);
     if (existing) {
@@ -175,7 +174,7 @@ export class CustomerOperations {
   async addTags(id: string, tags: string[]): Promise<Customer> {
     const customer = await this.getById(id);
     if (!customer) {
-      throw new Error('Customer not found');
+      throw new Error("Customer not found");
     }
 
     const existingTags = customer.tags || [];
@@ -188,11 +187,11 @@ export class CustomerOperations {
   async removeTags(id: string, tags: string[]): Promise<Customer> {
     const customer = await this.getById(id);
     if (!customer) {
-      throw new Error('Customer not found');
+      throw new Error("Customer not found");
     }
 
     const existingTags = customer.tags || [];
-    const newTags = existingTags.filter(tag => !tags.includes(tag));
+    const newTags = existingTags.filter((tag) => !tags.includes(tag));
 
     return this.update(id, { tags: newTags });
   }
@@ -200,16 +199,18 @@ export class CustomerOperations {
   // Get customer analytics for brand
   async getAnalytics() {
     const { data, error } = await this.db.raw
-      .from('customers')
-      .select(`
+      .from("customers")
+      .select(
+        `
         stage,
         source,
         created_at,
         trial_started_at,
         subscribed_at,
         churned_at
-      `)
-      .eq('brand_id', this.db.context.brand_id);
+      `
+      )
+      .eq("brand_id", this.db.context.brand_id);
 
     if (error) {
       throw new Error(`Failed to get customer analytics: ${error.message}`);
@@ -226,11 +227,11 @@ export class CustomerOperations {
 
     data.forEach((customer: any) => {
       // Count by stage
-      analytics.byStage[customer.stage as CustomerStage] = 
+      analytics.byStage[customer.stage as CustomerStage] =
         (analytics.byStage[customer.stage as CustomerStage] || 0) + 1;
 
       // Count by source
-      analytics.bySource[customer.source as CustomerSource] = 
+      analytics.bySource[customer.source as CustomerSource] =
         (analytics.bySource[customer.source as CustomerSource] || 0) + 1;
     });
 

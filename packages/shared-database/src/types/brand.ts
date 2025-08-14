@@ -1,7 +1,7 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // Brand enum and types
-export const BrandId = z.enum(['gnymble', 'percymd', 'percytext']);
+export const BrandId = z.enum(["gnymble", "percymd", "percytext"]);
 export type BrandId = z.infer<typeof BrandId>;
 
 // Brand configuration interface
@@ -27,33 +27,33 @@ export interface BrandContext {
 // Default brand configurations
 export const BRAND_CONFIGS: Record<BrandId, BrandConfig> = {
   gnymble: {
-    id: 'gnymble',
-    name: 'Gnymble',
-    domain: 'gnymble.com',
-    platform_domain: 'app.gnymble.com',
-    primary_color: '#4F46E5',
-    logo_url: '/brands/gnymble/logo.svg',
-    support_email: 'support@gnymble.com',
+    id: "gnymble",
+    name: "Gnymble",
+    domain: "gnymble.com",
+    platform_domain: "app.gnymble.com",
+    primary_color: "#4F46E5",
+    logo_url: "/brands/gnymble/logo.svg",
+    support_email: "support@gnymble.com",
     is_active: true,
   },
   percymd: {
-    id: 'percymd',
-    name: 'PercyMD',
-    domain: 'percymd.com',
-    platform_domain: 'app.percymd.com',
-    primary_color: '#059669',
-    logo_url: '/brands/percymd/logo.svg',
-    support_email: 'support@percymd.com',
+    id: "percymd",
+    name: "PercyMD",
+    domain: "percymd.com",
+    platform_domain: "app.percymd.com",
+    primary_color: "#059669",
+    logo_url: "/brands/percymd/logo.svg",
+    support_email: "support@percymd.com",
     is_active: true,
   },
   percytext: {
-    id: 'percytext',
-    name: 'PercyText',
-    domain: 'percytext.com',
-    platform_domain: 'app.percytext.com',
-    primary_color: '#DC2626',
-    logo_url: '/brands/percytext/logo.svg',
-    support_email: 'support@percytext.com',
+    id: "percytext",
+    name: "PercyText",
+    domain: "percytext.com",
+    platform_domain: "app.percytext.com",
+    primary_color: "#DC2626",
+    logo_url: "/brands/percytext/logo.svg",
+    support_email: "support@percytext.com",
     is_active: true,
   },
 };
